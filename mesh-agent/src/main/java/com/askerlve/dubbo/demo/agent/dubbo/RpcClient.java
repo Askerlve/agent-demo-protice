@@ -4,8 +4,11 @@ import com.askerlve.dubbo.demo.agent.model.Request;
 import com.askerlve.dubbo.demo.agent.model.RpcFuture;
 import com.askerlve.dubbo.demo.agent.model.RpcInvocation;
 import com.askerlve.dubbo.demo.agent.model.RpcRequestHolder;
+import com.askerlve.dubbo.demo.agent.registry.IRegistry;
 import com.askerlve.dubbo.demo.agent.utils.JsonUtils;
 import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -14,24 +17,26 @@ import java.io.PrintWriter;
 
 public class RpcClient {
 
+    private Logger logger = LoggerFactory.getLogger(RpcClient.class);
+
     private ConnectManager connectManager;
 
-    public RpcClient(){
-        this.connectManager = new ConnectManager();
+    public RpcClient(IRegistry registry){
+        this.connectManager = new ConnectManager(registry);
     }
 
-    public Object hello(String name) throws Exception {
+    public Object invoke(String interfaceName, String method, String parameterTypesString, String parameter) throws Exception {
 
-        Channel channel = connectManager.getChannel("");
+        Channel channel = connectManager.getChannel();
 
         RpcInvocation invocation = new RpcInvocation();
-        invocation.setMethodName("hello");
-        invocation.setAttachment("path", "com.askerlve.dubbo.demo.provider.IHelloService");
-        invocation.setParameterTypes("Ljava/lang/String;");// 这块用ReflecUtils转换成字符串
+        invocation.setMethodName(method);
+        invocation.setAttachment("path", interfaceName);
+        invocation.setParameterTypes(parameterTypesString);    // Dubbo内部用"Ljava/lang/String"来表示参数类型是String
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         PrintWriter writer = new PrintWriter(new OutputStreamWriter(out));
-        JsonUtils.writeObject(name, writer);
+        JsonUtils.writeObject(parameter, writer);
         invocation.setArguments(out.toByteArray());
 
         Request request = new Request();
@@ -39,7 +44,7 @@ public class RpcClient {
         request.setTwoWay(true);
         request.setData(invocation);
 
-        System.out.println("requestId=" + request.getId());
+        logger.info("requestId=" + request.getId());
 
         RpcFuture future = new RpcFuture();
         RpcRequestHolder.put(String.valueOf(request.getId()),future);
@@ -52,7 +57,6 @@ public class RpcClient {
         }catch (Exception e){
             e.printStackTrace();
         }
-        // result是byte數組，可能準不了
         return result;
     }
 }

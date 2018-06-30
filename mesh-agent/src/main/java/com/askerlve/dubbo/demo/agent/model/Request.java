@@ -7,7 +7,7 @@ public class Request {
     private static AtomicLong atomicLong = new AtomicLong();
     private long id;
     private String interfaceName = "com.askerlve.dubbo.demo.provider.IHelloService";
-    private String methodName = "hello";
+    private String methodName = "hash";
     private String dubboVersion = "2.6.0";
     private String version = "0.0.0";
     private String parameterTypesString = "Ljava/lang/String;";

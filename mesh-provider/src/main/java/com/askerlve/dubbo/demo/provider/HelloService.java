@@ -1,16 +1,16 @@
 package com.askerlve.dubbo.demo.provider;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class HelloService implements IHelloService {
-    @Override
-    public String hello() {
-        System.out.println("Hello, leo");
-        return "Hello, leo";
-    }
+    private Logger logger = LoggerFactory.getLogger(HelloService.class);
 
     @Override
-    public String hello(String name) {
-        System.out.println("Hello " + name);
-        return "Hello, " + name;
+    public int hash(String str) {
+        int hashCode = str.hashCode();
+        logger.info("hash(): " + str + " => " + hashCode);
+        return hashCode;
     }
 }

@@ -1,6 +1,8 @@
 package com.askerlve.dubbo.demo.agent;
 
+import com.alibaba.fastjson.JSON;
 import com.askerlve.dubbo.demo.agent.dubbo.RpcClient;
+import com.askerlve.dubbo.demo.agent.registry.EtcdRegistry;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -9,6 +11,8 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,40 +23,49 @@ import java.util.List;
 @RestController
 public class HelloController {
 
-    private RpcClient rpcClient = new RpcClient();
+    private Logger logger = LoggerFactory.getLogger(HelloController.class);
 
-    @RequestMapping(value = "/provider")
-    public byte[] provider(@RequestParam("service") String service,
-                           @RequestParam("method") String method,
-                           @RequestParam("ptypes") String ptypes,
-                           @RequestParam("args") String args) throws Exception {
-        // 部署在拿到method和name，生成符合Dubbo格式的字节码，去调用Dubbo Provider，拿到返回值，再通过Http协议返回给agent
-        Object result = rpcClient.hello(args);
+    private RpcClient rpcClient = new RpcClient(new EtcdRegistry("http://127.0.0.1:2379"));
+
+    @RequestMapping(value = "/invoke")
+    public Object invoke(@RequestParam("interface") String interfaceName,
+                         @RequestParam("method") String method,
+                         @RequestParam("parameterTypesString") String parameterTypesString,
+                         @RequestParam("parameter") String parameter) throws Exception {
+        String type = System.getProperty("type");   // 获取type参数
+        if ("consumer".equals(type)){
+            return consumer(interfaceName,method,parameterTypesString,parameter);
+        }
+        else if ("provider".equals(type)){
+            return provider(interfaceName,method,parameterTypesString,parameter);
+        }else {
+            return "Environment variable type is needed to set to provider or consumer.";
+        }
+    }
+
+    public byte[] provider(String interfaceName,String method,String parameterTypesString,String parameter) throws Exception {
+
+        Object result = rpcClient.invoke(interfaceName,method,parameterTypesString,parameter);
         return (byte[]) result;
     }
 
-    @RequestMapping(value = "/consumer")
-    public String consumer(@RequestParam("service") String service,
-                           @RequestParam("method") String method,
-                           @RequestParam("ptypes") String ptypes,
-                           @RequestParam("args") String args ) throws Exception {
-        // consumer调用部署在consumer上的agent的该方法
+    public Integer consumer(String interfaceName,String method,String parameterTypesString,String parameter) throws Exception {
 
-        String url = "http://127.0.0.1:9000/provider";
+        String url = "http://127.0.0.1:30000/invoke";
         HttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(url);
 
         List<NameValuePair> urlParameters = new ArrayList<>();
-        urlParameters.add(new BasicNameValuePair("service",service));
+        urlParameters.add(new BasicNameValuePair("interface",interfaceName));
         urlParameters.add(new BasicNameValuePair("method",method));
-        urlParameters.add(new BasicNameValuePair("ptypes",ptypes));
-        urlParameters.add(new BasicNameValuePair("args",args));
+        urlParameters.add(new BasicNameValuePair("parameterTypesString",parameterTypesString));
+        urlParameters.add(new BasicNameValuePair("parameter",parameter));
 
         post.setEntity(new UrlEncodedFormEntity(urlParameters));
 
         HttpResponse response = client.execute(post);
-        System.out.println("\nSending 'POST' request to URL : " + url);
-        System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
+        logger.info("Sending 'POST' request to URL : " + url);
+        logger.info("Response Code : " + response.getStatusLine().getStatusCode());
 
         HttpEntity entity = response.getEntity();
         int contentLength = (int) entity.getContentLength();
@@ -60,12 +73,6 @@ public class HelloController {
         byte[] responseBuffer = new byte[contentLength];
         entity.getContent().read(responseBuffer);
 
-        return new String(responseBuffer);
-    }
-
-    @RequestMapping(value = "/test")
-    public byte[] test(){
-        byte[] bytes = new byte[]{1,2,3,4,5};
-        return bytes;
+        return JSON.parseObject(responseBuffer, Integer.class);
     }
 }

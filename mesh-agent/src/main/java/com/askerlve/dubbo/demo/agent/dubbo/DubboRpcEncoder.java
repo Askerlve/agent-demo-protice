@@ -23,12 +23,6 @@ public class DubboRpcEncoder extends MessageToByteEncoder{
     protected static final byte FLAG_TWOWAY = (byte) 0x40;
     protected static final byte FLAG_EVENT = (byte) 0x20;
 
-    private Class<?> clazz;
-
-    public DubboRpcEncoder(Class<?> clazz){
-        this.clazz = clazz;
-    }
-
     @Override
     protected void encode(ChannelHandlerContext ctx, Object msg, ByteBuf buffer) throws Exception {
         Request req = (Request)msg;

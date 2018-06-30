@@ -24,7 +24,7 @@ public class RpcFuture implements Future<Object> {
     }
 
     @Override
-    public Object get() throws InterruptedException, ExecutionException {
+    public Object get() throws InterruptedException {
 
         latch.await();
         try {
@@ -36,7 +36,7 @@ public class RpcFuture implements Future<Object> {
     }
 
     @Override
-    public Object get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public Object get(long timeout, TimeUnit unit) throws InterruptedException {
         boolean b = latch.await(timeout,unit);
         return response.getBytes();
     }

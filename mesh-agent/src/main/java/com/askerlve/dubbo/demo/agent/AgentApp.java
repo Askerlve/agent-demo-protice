@@ -5,15 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class AgentApp {
-    public static void main(String[] args) throws Exception {
-        // 启动一个http server，用于监听consumer端的请求
-         //new HttpServer(8088).run();
+    // agent会作为sidecar，部署在每一个Provider和Consumer机器上
+    // 在Provider端启动agent时，添加JVM参数-Dtype=provider -Dserver.port=30000
+    // 在Consumer端启动agent时，添加JVM参数-Dtype=consumer -Dserver.port=20000
+    public static void main(String[] args) {
         SpringApplication.run(AgentApp.class,args);
-
-//        RpcClient rpcClient = new RpcClient();
-//        while (true) {
-//            System.out.println(rpcClient.hello("leo"));
-//            Thread.sleep(5 * 1000);
-//        }
     }
 }

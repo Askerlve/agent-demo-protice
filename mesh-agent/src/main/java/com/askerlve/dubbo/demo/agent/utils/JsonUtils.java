@@ -24,7 +24,7 @@ public class JsonUtils {
         writer.flush();
     }
 
-    public static void writeBytes(byte[] b, PrintWriter writer) throws IOException {
+    public static void writeBytes(byte[] b, PrintWriter writer) {
         writer.print(new String(b));
         writer.flush();
     }
