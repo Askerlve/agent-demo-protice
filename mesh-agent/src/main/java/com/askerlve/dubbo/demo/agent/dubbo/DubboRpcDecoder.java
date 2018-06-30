@@ -18,11 +18,21 @@ public class DubboRpcDecoder extends ByteToMessageDecoder {
         list.add(decode2(byteBuf));
     }
 
+    /**
+     * Demo为简单起见，直接从特定字节位开始读取了的返回值，demo未做：
+     * 1. 请求头判断
+     * 2. 返回值类型判断
+     *
+     * @param byteBuf
+     * @return
+     */
     private Object decode2(ByteBuf byteBuf){
         byte[] data = new byte[byteBuf.readableBytes()];
         byteBuf.readBytes(data);
 
-        byte[] subArray = Arrays.copyOfRange(data,HEADER_LENGTH + 1, data.length);
+        // HEADER_LENGTH + 1，忽略header & Response value type的读取，直接读取实际Return value
+        // dubbo返回的body中，前后各有一个换行，去掉
+        byte[] subArray = Arrays.copyOfRange(data,HEADER_LENGTH + 2, data.length - 1);
 
         String s = new String(subArray);
 

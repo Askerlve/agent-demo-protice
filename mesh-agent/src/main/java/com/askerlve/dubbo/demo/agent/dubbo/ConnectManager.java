@@ -8,26 +8,46 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
+import javax.annotation.concurrent.ThreadSafe;
+
+@ThreadSafe
 public class ConnectManager {
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
 
     private Bootstrap bootstrap;
 
+    private Channel channel;
+    private Object lock = new Object();
+
     public ConnectManager(){
     }
 
     public Channel getChannel() throws Exception {
-        if ( null == bootstrap){
-            initBootstrap();
+        if (null != channel) {
+            return channel;
         }
 
-        int port = Integer.valueOf(System.getProperty("dubbo.protocol.port"));
-        Channel channel = bootstrap.connect("127.0.0.1", port).sync().channel();
+        if (null == bootstrap) {
+            synchronized (lock) {
+                if (null == bootstrap) {
+                    initBootstrap();
+                }
+            }
+        }
+
+        if (null == channel) {
+            synchronized (lock){
+                if (null == channel){
+                    int port = Integer.valueOf(System.getProperty("dubbo.protocol.port"));
+                    channel = bootstrap.connect("127.0.0.1", port).sync().channel();
+                }
+            }
+        }
 
         return channel;
     }
 
-    public void initBootstrap() {
+    private void initBootstrap() {
 
         bootstrap = new Bootstrap()
                 .group(eventLoopGroup)
