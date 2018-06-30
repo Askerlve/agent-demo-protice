@@ -60,7 +60,7 @@ public class HelloController {
         // 简单的负载均衡，随机取一个
         Endpoint endpoint = endpoints.get(random.nextInt(endpoints.size()));
 
-        String url =  "http://" + endpoint.getHost() + ":30000/invoke";
+        String url =  "http://" + endpoint.getHost() + ":" + endpoint.getPort() + "/invoke";
 
         HttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(url);
