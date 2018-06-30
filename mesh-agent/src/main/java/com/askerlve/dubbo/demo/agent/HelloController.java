@@ -2,7 +2,9 @@ package com.askerlve.dubbo.demo.agent;
 
 import com.alibaba.fastjson.JSON;
 import com.askerlve.dubbo.demo.agent.dubbo.RpcClient;
+import com.askerlve.dubbo.demo.agent.registry.Endpoint;
 import com.askerlve.dubbo.demo.agent.registry.EtcdRegistry;
+import com.askerlve.dubbo.demo.agent.registry.IRegistry;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -19,13 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @RestController
 public class HelloController {
 
     private Logger logger = LoggerFactory.getLogger(HelloController.class);
 
-    private RpcClient rpcClient = new RpcClient(new EtcdRegistry("http://127.0.0.1:2379"));
+    private IRegistry registry = new EtcdRegistry("http://127.0.0.1:2379");
+    private RpcClient rpcClient = new RpcClient(registry);
+    private Random random = new Random();
 
     @RequestMapping(value = "/invoke")
     public Object invoke(@RequestParam("interface") String interfaceName,
@@ -51,7 +56,12 @@ public class HelloController {
 
     public Integer consumer(String interfaceName,String method,String parameterTypesString,String parameter) throws Exception {
 
-        String url = "http://127.0.0.1:30000/invoke";
+        List<Endpoint> endpoints = registry.find("com.askerlve.dubbo.demo.provider.IHelloService");
+        // 简单的负载均衡，随机取一个
+        Endpoint endpoint = endpoints.get(random.nextInt(endpoints.size()));
+
+        String url =  "http://" + endpoint.getHost() + ":30000/invoke";
+
         HttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(url);
 
