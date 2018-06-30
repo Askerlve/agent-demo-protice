@@ -21,8 +21,8 @@ public class RpcClient {
 
     private ConnectManager connectManager;
 
-    public RpcClient(IRegistry registry){
-        this.connectManager = new ConnectManager(registry);
+    public RpcClient(){
+        this.connectManager = new ConnectManager();
     }
 
     public Object invoke(String interfaceName, String method, String parameterTypesString, String parameter) throws Exception {

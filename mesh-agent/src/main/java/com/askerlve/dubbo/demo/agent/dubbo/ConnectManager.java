@@ -17,11 +17,8 @@ public class ConnectManager {
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
 
     private Bootstrap bootstrap;
-    private IRegistry registry;
-    private Random random = new Random();
 
-    public ConnectManager(IRegistry registry){
-        this.registry = registry;
+    public ConnectManager(){
     }
 
     public Channel getChannel() throws Exception {
@@ -29,11 +26,8 @@ public class ConnectManager {
             initBootstrap();
         }
 
-        List<Endpoint> endpoints = registry.find("com.askerlve.dubbo.demo.provider.IHelloService");
-        // 简单的负载均衡，随机取一个
-        Endpoint endpoint = endpoints.get(random.nextInt(endpoints.size()));
+        Channel channel = bootstrap.connect("127.0.0.1", 20889).sync().channel();
 
-        Channel channel = bootstrap.connect(endpoint.getHost(), endpoint.getPort()).sync().channel();
         return channel;
     }
 

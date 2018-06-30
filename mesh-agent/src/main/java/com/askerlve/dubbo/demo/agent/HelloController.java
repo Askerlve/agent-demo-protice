@@ -29,7 +29,7 @@ public class HelloController {
     private Logger logger = LoggerFactory.getLogger(HelloController.class);
 
     private IRegistry registry = new EtcdRegistry("http://127.0.0.1:2379");
-    private RpcClient rpcClient = new RpcClient(registry);
+    private RpcClient rpcClient = new RpcClient();
     private Random random = new Random();
 
     @RequestMapping(value = "/invoke")
