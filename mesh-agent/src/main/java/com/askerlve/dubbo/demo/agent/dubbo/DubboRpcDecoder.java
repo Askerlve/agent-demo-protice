@@ -13,26 +13,67 @@ public class DubboRpcDecoder extends ByteToMessageDecoder {
     // header length.
     protected static final int HEADER_LENGTH = 16;
 
+    protected static final byte FLAG_EVENT = (byte) 0x20;
+
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) {
 
-        // TCP粘包
-        if (byteBuf.readableBytes() < HEADER_LENGTH){
-            return;
+        try {
+            do {
+                int savedReaderIndex = byteBuf.readerIndex();
+                Object msg = null;
+                try {
+                    msg = decode2(byteBuf);
+                } catch (Exception e) {
+                    throw e;
+                }
+                if (msg == DecodeResult.NEED_MORE_INPUT) {
+                    byteBuf.readerIndex(savedReaderIndex);
+                    break;
+                }
+
+                list.add(msg);
+            } while (byteBuf.isReadable());
+        } finally {
+            if (byteBuf.isReadable()) {
+                byteBuf.discardReadBytes();
+            }
+        }
+    }
+
+    enum DecodeResult {
+        NEED_MORE_INPUT, SKIP_INPUT
+    }
+
+    /**
+     * Demo为简单起见，直接从特定字节位开始读取了的返回值，demo未做：
+     * 1. 请求头判断
+     * 2. 返回值类型判断
+     *
+     * @param byteBuf
+     * @return
+     */
+    private Object decode2(ByteBuf byteBuf){
+
+        int savedReaderIndex = byteBuf.readerIndex();
+        int readable = byteBuf.readableBytes();
+
+        if (readable < HEADER_LENGTH) {
+            return DecodeResult.NEED_MORE_INPUT;
         }
 
-        // 获取bytebuf的字节流，不改变reader index
-        byte[] bytes = new byte[byteBuf.readableBytes()];
-        byteBuf.getBytes(byteBuf.readerIndex(),bytes);
-
-        // 获取数据长度
-        int len = Bytes.bytes2int(Arrays.copyOfRange(bytes, HEADER_LENGTH - 4, HEADER_LENGTH));
-        if (byteBuf.readableBytes() < 16 + len){
-            return;
+        byte[] header = new byte[HEADER_LENGTH];
+        byteBuf.readBytes(header);
+        byte[] dataLen = Arrays.copyOfRange(header,12,16);
+        int len = Bytes.bytes2int(dataLen);
+        int tt = len + HEADER_LENGTH;
+        if (readable < tt) {
+            return DecodeResult.NEED_MORE_INPUT;
         }
 
-        byte[] data = new byte[16 + len];
-        byteBuf.getBytes(byteBuf.readerIndex(), data, 0, HEADER_LENGTH + len);
+        byteBuf.readerIndex(savedReaderIndex);
+        byte[] data = new byte[tt];
+        byteBuf.readBytes(data);
 
         // HEADER_LENGTH + 1，忽略header & Response value type的读取，直接读取实际Return value
         // dubbo返回的body中，前后各有一个换行，去掉
@@ -44,10 +85,6 @@ public class DubboRpcDecoder extends ByteToMessageDecoder {
         RpcResponse response = new RpcResponse();
         response.setRequestId(String.valueOf(requestId));
         response.setBytes(subArray);
-
-        list.add(response);
-
-        byteBuf.readerIndex(HEADER_LENGTH + len);
-        byteBuf.discardReadBytes();
+        return response;
     }
 }
