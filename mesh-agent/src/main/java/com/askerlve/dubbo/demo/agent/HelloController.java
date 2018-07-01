@@ -56,7 +56,7 @@ public class HelloController {
         if (null == endpoints) {
             synchronized (lock) {
                 if (null == endpoints) {
-                    endpoints = registry.find("com.alibaba.dubbo.performance.demo.provider.IHelloService");
+                    endpoints = registry.find("com.askerlve.dubbo.demo.provider.IHelloService");
                 }
             }
         }
@@ -64,7 +64,7 @@ public class HelloController {
         // 简单的负载均衡，随机取一个
         Endpoint endpoint = endpoints.get(random.nextInt(endpoints.size()));
 
-        String url = "http://" + endpoint.getHost() + ":" + endpoint.getPort();
+        String url = "http://" + endpoint.getHost() + ":" + endpoint.getPort() + "/invoke";
 
         RequestBody requestBody = new FormBody.Builder()
                 .add("interface", interfaceName)
